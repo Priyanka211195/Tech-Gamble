@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindClash: Admin Headquarters</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Firebase App & Realtime Database SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #05070d;
+      --card-bg: rgba(14, 20, 36, 0.72);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover-border: rgba(56, 189, 248, 0.4);
+      --accent: #38bdf8;
+      --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+      --text: #f8fafc;
+      --text-dim: #94a3b8;
+      --border: rgba(255, 255, 255, 0.08);
+      --success: #10b981;
+      --danger: #f43f5e;
+      --glow-cyan: rgba(56, 189, 248, 0.22);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 32px 20px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before, body::after {
+      content: ""; position: fixed; width: 540px; height: 540px; border-radius: 50%;
+      filter: blur(150px); pointer-events: none; z-index: -1;
+    }
+    body::before { top: -140px; left: -100px; background: radial-gradient(circle, rgba(56, 189, 248, 0.18), transparent 70%); }
+    body::after { bottom: -140px; right: -100px; background: radial-gradient(circle, rgba(192, 132, 252, 0.16), transparent 70%); }
+
+    header {
+      max-width: 1200px;
+      margin: 0 auto 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding: 24px 32px;
+      background: rgba(14, 20, 36, 0.75);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 25px 50px -18px rgba(0, 0, 0, 0.7);
+    }
+
+    .brand-title {
+      font-size: 32px;
+      font-weight: 900;
+      background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .pulse-dot {
+      width: 14px; height: 14px; border-radius: 50%; background: #38bdf8;
+      box-shadow: 0 0 16px #38bdf8;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; display: grid; gap: 28px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 26px;
+      box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.55);
+    }
+
+    .card h3 {
+      font-size: 17px; font-weight: 700; margin-bottom: 20px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    input, select {
+      background: rgba(8, 12, 22, 0.85);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      outline: none;
+      width: 100%;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    label { font-size: 13px; font-weight: 600; color: var(--text-dim); }
+
+    button {
+      background: var(--accent-gradient);
+      color: #040814;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    button:hover { transform: translateY(-2px); }
+    button.btn-secondary { background: rgba(255, 255, 255, 0.05); color: var(--text); border: 1px solid var(--border); }
+    button.btn-danger { background: rgba(244, 63, 94, 0.15); color: var(--danger); border: 1px solid rgba(244, 63, 94, 0.3); }
+    button.btn-success { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+
+    table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+    th { text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-dim); }
+    td { padding: 14px 16px; font-size: 14px; background: rgba(9, 14, 26, 0.55); border-top: 1px solid rgba(255, 255, 255, 0.04); border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+    td:first-child { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+    td:last-child { border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+
+    .scroll-table { max-height: 400px; overflow-y: auto; }
+    .badge-rank { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(255, 255, 255, 0.06); font-weight: 800; font-size: 12px; }
+    .top-1 { background: #fbbf24; color: #000; }
+    .top-2 { background: #cbd5e1; color: #000; }
+    .top-3 { background: #fb923c; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <!-- ADMIN AUTHENTICATION GATE -->
+  <div id="adminAuthSection" class="card" style="max-width: 420px; margin: 80px auto; width: 100%;">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <h2 class="brand-title" style="justify-content: center; font-size: 28px;">
+        <span class="pulse-dot"></span> Admin Portal
+      </h2>
+      <p style="color: var(--text-dim); font-size: 13px; margin-top: 6px;">TechGamble Restricted Control Desk</p>
+    </div>
+    <div class="form-group">
+      <label>Admin Username</label>
+      <input type="text" id="adminUsernameInput" placeholder="Enter username">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="adminPasswordInput" placeholder="Enter password" onkeydown="if(event.key==='Enter') handleAdminLogin()">
+    </div>
+    <button onclick="handleAdminLogin()" style="width: 100%; margin-top: 10px;">Login as Admin</button>
+  </div>
+
+  <!-- ADMIN PROTECTED DASHBOARD -->
+  <div id="adminDashboard" style="display: none;">
+    <header>
+      <div>
+        <h1 class="brand-title"><span class="pulse-dot"></span> TechGamble</h1>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 4px;">Real-Time Admin Operations Desk</p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <span style="font-family: 'JetBrains Mono'; font-size: 13px; color: var(--accent);">
+          Firebase Cloud: Active
+        </span>
+        <button class="btn-danger" onclick="logoutAdmin()" style="padding: 8px 16px; font-size: 12px;">Sign Out</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <!-- PENDING ACTION QUEUE -->
+      <div class="card" style="border-color: rgba(56, 189, 248, 0.3);">
+        <h3>
+          Pending Action Queue
+          <span id="pendingCount" style="background: var(--danger); color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; display: none;">0</span>
+        </h3>
+        <div class="scroll-table">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Raised Time</th>
+                <th>Player Handle</th>
+                <th>Mobile</th>
+                <th>Stake</th>
+                <th>Target</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="adminBetsTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ENLIST & SPOTLIGHT -->
+      <div class="grid-2">
+        <div class="card">
+          <h3>Enlist Player</h3>
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="newUsername" placeholder="e.g. quantum_coder">
+          </div>
+          <div class="form-group">
+            <label>Mobile Number</label>
+            <input type="tel" id="newMobile" placeholder="e.g. 9876543210">
+          </div>
+          <div class="form-group">
+            <label>Initial Score</label>
+            <input type="number" id="newPoints" value="1000">
+          </div>
+          <button onclick="createSingleUser()" style="width: 100%;">Create Player Account</button>
+        </div>
+
+        <div class="card">
+          <h3>
+            <span>Player Spotlight</span>
+            <span id="inspectorCounter" style="font-size: 12px; color: var(--accent); font-family: 'JetBrains Mono';">0 of 0</span>
+          </h3>
+          <div id="inspectorDisplay">
+            <div style="color: var(--text-dim); text-align: center; padding: 36px 12px;">No players registered.</div>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 18px;">
+            <button class="btn-secondary" onclick="prevPlayer()" style="flex: 1;">◀ Previous</button>
+            <button class="btn-secondary" onclick="nextPlayer()" style="flex: 1;">Next ▶</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD -->
+      <div class="card">
+        <h3>Live Competitor Leaderboard</h3>
+        <div class="scroll-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Player Handle</th>
+                <th>Mobile</th>
+                <th>Score Balance</th>
+                <th>Score Delta</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="adminUsersTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Configured with your Firebase URL
+    const firebaseConfig = {
+      databaseURL: "https://mindclash-85090-default-rtdb.firebaseio.com/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let users = [];
+    let bets = [];
+    let currentInspectIndex = 0;
+
+    // Admin Credentials
+    const ADMIN_USER = "admin";
+    const ADMIN_PASS = "admin@123";
+
+    // Authentication Checks
+    function checkAdminSession() {
+      const isAuth = sessionStorage.getItem("admin_authenticated") === "true";
+      const authBox = document.getElementById("adminAuthSection");
+      const dashboard = document.getElementById("adminDashboard");
+
+      if (isAuth) {
+        authBox.style.display = "none";
+        dashboard.style.display = "block";
+      } else {
+        authBox.style.display = "block";
+        dashboard.style.display = "none";
+      }
+    }
+
+    function handleAdminLogin() {
+      const u = document.getElementById("adminUsernameInput").value.trim();
+      const p = document.getElementById("adminPasswordInput").value.trim();
+
+      if (u === ADMIN_USER && p === ADMIN_PASS) {
+        sessionStorage.setItem("admin_authenticated", "true");
+        document.getElementById("adminUsernameInput").value = "";
+        document.getElementById("adminPasswordInput").value = "";
+        checkAdminSession();
+      } else {
+        alert("Invalid Admin Credentials.");
+      }
+    }
+
+    function logoutAdmin() {
+      sessionStorage.removeItem("admin_authenticated");
+      checkAdminSession();
+    }
+
+    // Real-time listener for registered players
+    db.ref("arena_users").on("value", (snapshot) => {
+      const data = snapshot.val();
+      users = data ? Object.values(data) : [];
+      users.sort((a, b) => (b.points || 0) - (a.points || 0));
+      renderLeaderboard();
+      renderInspector();
+    });
+
+    // Real-time listener for incoming bets
+    db.ref("arena_bets").on("value", (snapshot) => {
+      const data = snapshot.val();
+      bets = data ? Object.values(data) : [];
+      bets.sort((a, b) => b.id - a.id);
+      renderPendingBets();
+    });
+
+    function createSingleUser() {
+      const usernameInput = document.getElementById("newUsername");
+      const mobileInput = document.getElementById("newMobile");
+      const pointsInput = document.getElementById("newPoints");
+
+      const username = usernameInput.value.trim();
+      const mobile = mobileInput.value.trim();
+      const points = parseInt(pointsInput.value);
+
+      // 10-digit mobile number format check (digits 6-9 leading)
+      const mobileRegex = /^[6-9]\d{9}$/;
+
+      if (!username || !mobile || isNaN(points)) {
+        alert("Please enter a valid username, mobile, and starting score.");
+        return;
+      }
+
+      if (!mobileRegex.test(mobile)) {
+        alert("Please enter a valid 10-digit mobile number.");
+        return;
+      }
+
+      if (users.some(u => u.mobile === mobile)) {
+        alert("A player with this mobile number already exists.");
+        return;
+      }
+
+      const newUser = { id: Date.now(), username, mobile, points };
+      db.ref("arena_users/" + mobile).set(newUser);
+
+      usernameInput.value = "";
+      mobileInput.value = "";
+    }
+
+    function deleteSingleUser(mobile) {
+      const user = users.find(u => u.mobile === mobile);
+      if (!user) return;
+
+      if (confirm(`Are you sure you want to delete ${user.username}?`)) {
+        db.ref("arena_users/" + mobile).remove();
+      }
+    }
+
+    function adjustPoints(mobile) {
+      const input = document.getElementById(`adjust-${mobile}`);
+      const delta = parseInt(input.value);
+      if (isNaN(delta)) return;
+
+      const userRef = db.ref("arena_users/" + mobile + "/points");
+      userRef.transaction((currentPoints) => {
+        return (currentPoints || 0) + delta;
+      });
+      input.value = "";
+    }
+
+    function resolveBet(betId, outcome) {
+      const bet = bets.find(b => b.id === betId);
+      if (!bet || bet.status !== "pending") return;
+
+      if (outcome === 'win') {
+        const userRef = db.ref("arena_users/" + bet.userMobile + "/points");
+        userRef.transaction((currentPoints) => {
+          return (currentPoints || 0) + (bet.amount * 2);
+        });
+        db.ref("arena_bets/" + betId).update({ status: "won" });
+      } else {
+        db.ref("arena_bets/" + betId).update({ status: "lost" });
+      }
+    }
+
+    function formatRaisedTime(betId) {
+      const date = new Date(betId);
+      if (isNaN(date.getTime())) return "Just now";
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function renderPendingBets() {
+      const pendingBets = bets.filter(b => b.status === "pending");
+      const table = document.getElementById("adminBetsTable");
+      const countBadge = document.getElementById("pendingCount");
+
+      countBadge.innerText = pendingBets.length;
+      countBadge.style.display = pendingBets.length > 0 ? "inline-block" : "none";
+
+      if (pendingBets.length === 0) {
+        table.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 24px;">No pending action requests.</td></tr>`;
+        return;
+      }
+
+      table.innerHTML = pendingBets.map(b => `
+        <tr>
+          <td style="font-family: 'JetBrains Mono'; color: var(--text-dim);">#${b.id.toString().slice(-4)}</td>
+          <td style="font-family: 'JetBrains Mono'; font-size: 12px; color: #f59e0b;">${formatRaisedTime(b.id)}</td>
+          <td><strong>${b.userName}</strong></td>
+          <td style="font-family: 'JetBrains Mono'; font-size: 13px;">${b.userMobile || 'N/A'}</td>
+          <td style="font-family: 'JetBrains Mono'; color: var(--accent); font-weight: 700;">${b.amount.toLocaleString()} pts</td>
+          <td>${b.choice || 'Bet 2 (2x)'}</td>
+          <td>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-success" onclick="resolveBet(${b.id}, 'win')" style="padding: 6px 12px; font-size: 12px;">Approve (+${(b.amount * 2).toLocaleString()})</button>
+              <button class="btn-danger" onclick="resolveBet(${b.id}, 'lose')" style="padding: 6px 12px; font-size: 12px;">Reject</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function prevPlayer() {
+      if (users.length === 0) return;
+      currentInspectIndex = (currentInspectIndex - 1 + users.length) % users.length;
+      renderInspector();
+    }
+
+    function nextPlayer() {
+      if (users.length === 0) return;
+      currentInspectIndex = (currentInspectIndex + 1) % users.length;
+      renderInspector();
+    }
+
+    function renderInspector() {
+      const display = document.getElementById("inspectorDisplay");
+      const counter = document.getElementById("inspectorCounter");
+
+      if (users.length === 0) {
+        display.innerHTML = `<div style="color: var(--text-dim); text-align: center; padding: 36px 12px;">No players registered.</div>`;
+        counter.innerText = "0 of 0";
+        return;
+      }
+
+      if (currentInspectIndex >= users.length) currentInspectIndex = 0;
+      const user = users[currentInspectIndex];
+      counter.innerText = `${currentInspectIndex + 1} of ${users.length}`;
+
+      display.innerHTML = `
+        <div style="background: rgba(8, 12, 22, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 14px; padding: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <div style="font-size: 20px; font-weight: 800;">${user.username}</div>
+              <div style="font-size: 13px; color: var(--text-dim); font-family: 'JetBrains Mono'; margin-top: 4px;">Mobile: ${user.mobile}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Points</div>
+              <div style="font-size: 22px; font-weight: 800; color: var(--accent); font-family: 'JetBrains Mono';">${(user.points || 0).toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLeaderboard() {
+      const table = document.getElementById("adminUsersTable");
+      if (users.length === 0) {
+        table.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 24px;">No players available.</td></tr>`;
+        return;
+      }
+
+      table.innerHTML = users.map((u, i) => {
+        let rankClass = i === 0 ? 'top-1' : i === 1 ? 'top-2' : i === 2 ? 'top-3' : '';
+        return `
+          <tr>
+            <td><span class="badge-rank ${rankClass}">#${i + 1}</span></td>
+            <td><strong>${u.username}</strong></td>
+            <td style="font-family: 'JetBrains Mono'; font-size: 13px; color: var(--text-dim);">${u.mobile}</td>
+            <td style="font-family: 'JetBrains Mono'; color: var(--accent); font-weight: 700;">${(u.points || 0).toLocaleString()} pts</td>
+            <td>
+              <div style="display: flex; gap: 8px;">
+                <input type="number" id="adjust-${u.mobile}" placeholder="+/- delta" style="width: 110px; padding: 6px 10px;">
+                <button onclick="adjustPoints('${u.mobile}')" style="padding: 6px 12px; font-size: 12px;">Apply</button>
+              </div>
+            </td>
+            <td>
+              <button class="btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteSingleUser('${u.mobile}')">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    checkAdminSession();
+  </script>
+</body>
+</html>
